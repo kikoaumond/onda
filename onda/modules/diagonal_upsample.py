@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from onda.modules.wavelets.haar import UP_DIAGONAL, DOWN_DIAGONAL
 
 
 class DiagonalUpsample(torch.nn.Module):
@@ -70,65 +71,101 @@ class DiagonalUpsample(torch.nn.Module):
         self._up_diagonal_kernels = [udk1, udk2]
         self._down_diagonal_kernels = [ddk1, ddk2]
 
-    def forward(self, x):
+    def forward(self, x, orientation=None):
         """
         Upsample 2 tensors corresponding to the Up Diagonal and Down Diagonal Haar Decomposition
         of a tensor resulting in an upsampled tensor with twice the width and height of the original
         tensors
 
         Args:
-            x(Tuple[torch.Tensor]): a tuple containing two tensors,the Up Diagonal and the
-                Down Diagonal tensor, in this order
-                which must have the same dimensions
+            x(Tuple[torch.Tensor]): a tuple containing one or two tensors,the Up Diagonal and the
+                Down Diagonal tensor, in this order.  Both tensors must have the same dimensions
+                If a single tensor is supplied, orientation must be specified
+
+            orientation (int): one of onda.modules.wavelets.haar.UP_DIAGONAL
+                or onda.modules.wavelets.haar.DOWN_DIAGONAL, denoting the direction along which
+                to perform upsampling.  Must be supplied if a single tensor is passed
 
         Returns:
             (torch.Tensor): the resulting upsampled tensor
 
         """
+        if len(x) == 2:
+            up_diagonal, down_diagonal = x
 
-        up_diagonal, down_diagonal = x
+        elif len(x) == 1:
 
-        assert up_diagonal.shape == down_diagonal.shape, \
-            'Tensors must habe the same shape but instead they have shapes {} and {}'\
-            .format(up_diagonal.shape, down_diagonal.shape)
+            if orientation == UP_DIAGONAL:
+                up_diagonal = x[0]
+                down_diagonal = None
+
+            elif orientation == DOWN_DIAGONAL:
+                down_diagonal = x[0]
+                up_diagonal = None
+
+            else:
+                raise ValueError('Illegal value for orientation: {}\n Orientation must be one of '
+                                 '(onda.modules.wavelets.haar.UP_DIAGONAL, '
+                                 'onda.modules.wavelets.haar.DOWN_DIAGONAL)'.format(orientation))
+
+        else:
+            raise ValueError('Only one or two tensors can be passed to DiagonalUpsample')
+
+        if up_diagonal is not None and down_diagonal is not None:
+
+            assert up_diagonal.shape == down_diagonal.shape, \
+                'Tensors must habe the same shape but instead they have shapes {} and {}'\
+                .format(up_diagonal.shape, down_diagonal.shape)
 
         # the number of convolution groups is equal to the number of channels
-        groups = up_diagonal.shape[1]
+        if up_diagonal is not None:
+            groups = up_diagonal.shape[1]
+        else:
+            groups = down_diagonal.shape[1]
 
-        up_diagonal_upsampled = None
+        if up_diagonal is not None:
+            up_diagonal_upsampled = None
 
-        for up_diagonal_kernel in self._up_diagonal_kernels:
+            for up_diagonal_kernel in self._up_diagonal_kernels:
 
-            if up_diagonal_upsampled is None:
-                up_diagonal_upsampled = F.conv_transpose2d(up_diagonal,
-                                                           weight=up_diagonal_kernel,
-                                                           stride=(2, 2),
-                                                           padding=0,
-                                                           groups=groups)
-            else:
-                up_diagonal_upsampled += F.conv_transpose2d(up_diagonal,
-                                                            weight=up_diagonal_kernel,
-                                                            stride=(2, 2),
-                                                            padding=0,
-                                                            groups=groups)
+                if up_diagonal_upsampled is None:
+                    up_diagonal_upsampled = F.conv_transpose2d(up_diagonal,
+                                                               weight=up_diagonal_kernel,
+                                                               stride=(2, 2),
+                                                               padding=0,
+                                                               groups=groups)
+                else:
+                    up_diagonal_upsampled += F.conv_transpose2d(up_diagonal,
+                                                                weight=up_diagonal_kernel,
+                                                                stride=(2, 2),
+                                                                padding=0,
+                                                                groups=groups)
 
-        down_diagonal_upsampled = None
+        if down_diagonal is not None:
+            down_diagonal_upsampled = None
 
-        for down_diagonal_kernel in self._down_diagonal_kernels:
+            for down_diagonal_kernel in self._down_diagonal_kernels:
 
-            if down_diagonal_upsampled is None:
-                down_diagonal_upsampled = F.conv_transpose2d(down_diagonal,
-                                                             weight=down_diagonal_kernel,
-                                                             stride=(2, 2),
-                                                             padding=0,
-                                                             groups=groups)
-            else:
-                down_diagonal_upsampled += F.conv_transpose2d(down_diagonal,
-                                                              weight=down_diagonal_kernel,
-                                                              stride=(2, 2),
-                                                              padding=0,
-                                                              groups=groups)
+                if down_diagonal_upsampled is None:
+                    down_diagonal_upsampled = F.conv_transpose2d(down_diagonal,
+                                                                 weight=down_diagonal_kernel,
+                                                                 stride=(2, 2),
+                                                                 padding=0,
+                                                                 groups=groups)
+                else:
+                    down_diagonal_upsampled += F.conv_transpose2d(down_diagonal,
+                                                                  weight=down_diagonal_kernel,
+                                                                  stride=(2, 2),
+                                                                  padding=0,
+                                                                  groups=groups)
 
-        upsampled = up_diagonal_upsampled + down_diagonal_upsampled
+        if up_diagonal is not None and down_diagonal is not None:
+            upsampled = up_diagonal_upsampled + down_diagonal_upsampled
+
+        elif up_diagonal is not None:
+            upsampled = up_diagonal_upsampled
+
+        elif down_diagonal is not None:
+            upsampled = down_diagonal_upsampled
 
         return upsampled

@@ -1,6 +1,7 @@
 import unittest
 import torch
 from onda.modules.diagonal_upsample import DiagonalUpsample
+from onda.modules.wavelets.haar import UP_DIAGONAL, DOWN_DIAGONAL
 
 
 class TestDiagonalUpsample(unittest.TestCase):
@@ -53,6 +54,40 @@ class TestDiagonalUpsample(unittest.TestCase):
                 self.assertTrue(torch.all(u[:, :, 1, 1] == dd))
                 self.assertTrue(torch.all(u[:, :, 0, 1] == ud))
                 self.assertTrue(torch.all(u[:, :, 1, 0] == ud))
+
+    def test_single_tensor(self):
+        """
+        Test DiagonalUpsample with a single tensor instead of a tuple of two tensors
+        Returns:
+
+        """
+        up_diagonal = torch.FloatTensor([[1, 3],
+                                         [5, 7]])
+        up_diagonal.unsqueeze_(0).unsqueeze_(0)
+
+        diagonal_upsample = DiagonalUpsample(in_channels=1)
+        upsampled = diagonal_upsample((up_diagonal,), orientation=UP_DIAGONAL)
+
+        expected_upsampled = torch.FloatTensor([[0, 1, 0, 3],
+                                                [1, 0, 3, 0],
+                                                [0, 5, 0, 7],
+                                                [5, 0, 7, 0]]).unsqueeze_(dim=0).unsqueeze_(dim=0)
+
+        self.assertTrue(torch.all(expected_upsampled == upsampled))
+
+        down_diagonal = torch.FloatTensor([[1, 3],
+                                         [5, 7]])
+        down_diagonal.unsqueeze_(0).unsqueeze_(0)
+
+        diagonal_upsample = DiagonalUpsample(in_channels=1)
+        upsampled = diagonal_upsample((down_diagonal,), orientation=DOWN_DIAGONAL)
+
+        expected_upsampled = torch.FloatTensor([[1, 0, 3, 0],
+                                                [0, 1, 0, 3],
+                                                [5, 0, 7, 0],
+                                                [0, 5, 0, 7]]).unsqueeze_(dim=0).unsqueeze_(dim=0)
+
+        self.assertTrue(torch.all(expected_upsampled == upsampled))
 
 
 if __name__ == '__main__':
