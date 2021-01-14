@@ -111,7 +111,7 @@ class TestHaar(unittest.TestCase):
             if orientation in [UP_DIAGONAL, DOWN_DIAGONAL]:
                 self.assertTrue(torch.all(t[deconv > 0] == deconv[deconv > 0]))
 
-    def notest_haar_conv(self):
+    def test_haar_conv(self):
         """
         Base test.  Run image through convolution, check that the shapes are as expected,
         that the values are correct and that deconvolution yields the original image
@@ -120,7 +120,6 @@ class TestHaar(unittest.TestCase):
         path = self.get_data_path()
         img1_path = os.path.join(path, 'img1.jpg')
         image = Image.open(img1_path)
-        #image = ImageOps.grayscale(image)
         image = self.letterbox_image(image, (512, 512))
         image = to_tensor(image)
 
@@ -179,6 +178,134 @@ class TestHaar(unittest.TestCase):
                         original = image[0, :, 2 * row: (2 * row) + 2, 2 * column: (2 * column) + 2]
                         self.assertTrue(torch.all(low_pass == original[:, 0, 0] + original[:, 1, 1]))
                         self.assertTrue(torch.all(detail == original[:, 0, 0] - original[:, 1, 1]))
+
+    def test_batch(self):
+        """
+        test a batch. Run image through convolution, check that the shapes are as expected,
+        that the values are correct and that deconvolution yields the original image
+        """
+        batch_size = 32
+        n_channels = 3
+        batch = torch.rand(batch_size, n_channels, 64, 64)
+
+        for orientation in [VERTICAL, HORIZONTAL, UP_DIAGONAL, DOWN_DIAGONAL]:
+            haar = HaarConv2D(orientation=orientation, in_channels=n_channels)
+            (image_low_pass, image_detail) = haar(batch)
+
+            self.assertIsNotNone(image_low_pass)
+            self.assertIsNotNone(image_detail)
+
+            assert image_low_pass.shape == image_detail.shape
+
+            if orientation == VERTICAL:
+                assert image_low_pass.shape[2] == batch.shape[2] // 2
+                assert image_low_pass.shape[3] == batch.shape[3]
+
+            elif orientation == HORIZONTAL:
+                assert image_low_pass.shape[2] == batch.shape[2]
+                assert image_low_pass.shape[3] == batch.shape[3] // 2
+
+            elif orientation in [UP_DIAGONAL, DOWN_DIAGONAL]:
+                assert image_low_pass.shape[2] == batch.shape[2] // 2
+                assert image_low_pass.shape[3] == batch.shape[3] // 2
+
+            for row in range(image_low_pass.shape[2]):
+
+                for column in range(image_low_pass.shape[3]):
+
+                    low_pass = image_low_pass[0, :, row, column]
+                    detail = image_detail[0, :, row, column]
+
+                    if orientation == VERTICAL:
+                        original = batch[0, :, 2 * row: (2 * row) + 2, column]
+                        self.assertTrue(torch.all(low_pass == original[:, 0] + original[:, 1]))
+                        self.assertTrue(torch.all(detail == original[:, 0] - original[:, 1]))
+
+                    elif orientation == HORIZONTAL:
+                        original = batch[0, :, row, 2 * column: (2 * column) + 2]
+                        self.assertTrue(torch.all(low_pass == original[:, 0] + original[:, 1]))
+                        self.assertTrue(torch.all(detail == original[:, 0] - original[:, 1]))
+
+                    elif orientation == UP_DIAGONAL:
+                        original = batch[0, :, 2 * row: (2 * row) + 2, 2 * column: (2 * column) + 2]
+                        self.assertTrue(torch.all(low_pass == original[:, 1, 0] + original[:, 0, 1]))
+                        self.assertTrue(torch.all(detail == original[:, 1, 0] - original[:, 0, 1]))
+
+                    elif orientation == DOWN_DIAGONAL:
+                        original = batch[0, :, 2 * row: (2 * row) + 2, 2 * column: (2 * column) + 2]
+                        self.assertTrue(torch.all(low_pass == original[:, 0, 0] + original[:, 1, 1]))
+                        self.assertTrue(torch.all(detail == original[:, 0, 0] - original[:, 1, 1]))
+
+    def test_batch_single_channel(self):
+        """
+        test a batch with by_channel = False.  Run image through convolution, check that the shapes
+        are as expected, that the values are correct and that deconvolution yields the original
+        image
+        """
+        batch_size = 32
+        n_channels = 3
+        batch = torch.rand(batch_size, n_channels, 64, 64)
+
+        for orientation in [VERTICAL, HORIZONTAL, UP_DIAGONAL, DOWN_DIAGONAL]:
+            haar = HaarConv2D(orientation=orientation, in_channels=n_channels, by_channel=False)
+            (image_low_pass, image_detail) = haar(batch)
+
+            self.assertIsNotNone(image_low_pass)
+            self.assertIsNotNone(image_detail)
+
+            assert image_low_pass.shape == image_detail.shape
+
+            if orientation == VERTICAL:
+                assert image_low_pass.shape[2] == batch.shape[2] // 2
+                assert image_low_pass.shape[3] == batch.shape[3]
+
+            elif orientation == HORIZONTAL:
+                assert image_low_pass.shape[2] == batch.shape[2]
+                assert image_low_pass.shape[3] == batch.shape[3] // 2
+
+            elif orientation in [UP_DIAGONAL, DOWN_DIAGONAL]:
+                assert image_low_pass.shape[2] == batch.shape[2] // 2
+                assert image_low_pass.shape[3] == batch.shape[3] // 2
+
+            for row in range(image_low_pass.shape[2]):
+
+                for column in range(image_low_pass.shape[3]):
+
+                    low_pass = image_low_pass[:, :, row, column]
+                    detail = image_detail[:, :, row, column]
+
+                    if orientation in (HORIZONTAL, VERTICAL):
+
+                        if orientation == VERTICAL:
+                            original = batch[:, :, 2 * row: (2 * row) + 2, column]
+
+                        elif orientation == HORIZONTAL:
+                            original = batch[:, :, row, 2 * column: (2 * column) + 2]
+
+                        original = torch.sum(original, dim=1)
+                        original_detail = original[:, 0] - original[:, 1]
+                        original_low_pass = torch.sum(original, dim=1)
+
+                    elif orientation in (UP_DIAGONAL, DOWN_DIAGONAL):
+                        original = batch[:, :, 2 * row: (2 * row) + 2, 2 * column: (2 * column) + 2]
+                        original = torch.sum(original, dim=1)
+
+                        if orientation == UP_DIAGONAL:
+                            original_low_pass = original[:, 1, 0] + original[:, 0, 1]
+                            original_detail = original[:, 1, 0] - original[:, 0, 1]
+
+                        elif orientation == DOWN_DIAGONAL:
+                            original_low_pass = original[:, 0, 0] + original[:, 1, 1]
+                            original_detail = original[:, 0, 0] - original[:, 1, 1]
+
+                    low_pass_diff = torch.abs(low_pass[:, 0] - original_low_pass)
+                    detail_diff = torch.abs(detail[:, 0] - original_detail)
+
+                    try:
+                        self.assertTrue(torch.all(low_pass_diff < 1e-6))
+                        self.assertTrue(torch.all(detail_diff < 1e-6))
+                    except:
+                        error = True
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 import unittest
-from onda.functions.sparsifier import Sparsifier, Sparsify
+from sparsifier import Sparsifier
 import torch
 import math
 

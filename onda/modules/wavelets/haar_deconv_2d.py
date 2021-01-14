@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class HaarDeconv2D(torch.nn.Module):
     """
-    2D Deconvolution using low pass and detail compoonents as inputs
+    2D Deconvolution using low pass and detail components as inputs
     Reconstructs a tensor of original dimensions prior to decomposition
     """
 
@@ -18,6 +18,9 @@ class HaarDeconv2D(torch.nn.Module):
 
             orientation (int): the direction of the Haar kernel: one of
                 haar.HORIZONTAL, haar.VERTICAL, haar.UP_DIAGONAL or haar.DOWN_DIAGONAL
+
+            in_channels (int): the number of channels in the tensor, i.e. the size of dimenson
+                index 1
         """
         super(HaarDeconv2D, self).__init__()
 
@@ -45,7 +48,6 @@ class HaarDeconv2D(torch.nn.Module):
             .repeat(self._out_channels, self._kernel_dim, 1, 1)
         self._detail_kernel = kernels[haar.DETAIL].unsqueeze(0).unsqueeze(0)\
             .repeat(self._out_channels, self._kernel_dim, 1, 1)
-
 
     def forward(self, x):
         """
