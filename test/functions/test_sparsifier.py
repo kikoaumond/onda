@@ -1,7 +1,6 @@
 import unittest
 from sparsifier import Sparsifier
 import torch
-import math
 
 
 class TestSparsifier(unittest.TestCase):
@@ -23,9 +22,10 @@ class TestSparsifier(unittest.TestCase):
         # sparsify the tensor
         sparse_x = sparsify(x_id)
         # check that the tensor is indeed sparsified
-        n_sparse = len(sparse_x[sparse_x != 0])
-        expected_n_sparse = math.ceil((1 - 0.95) * 100)
-        self.assertLessEqual(n_sparse, expected_n_sparse)
+        n_non_zero = torch.numel(sparse_x[sparse_x != 0])
+        n = torch.numel(x_id)
+        actual_sparsity = 1 - (n_non_zero / n)
+        self.assertGreaterEqual(actual_sparsity, sparsity)
         # compute a sum of the sparsified tensor so we can compute gradients
         y = sparse_x.sum()
         # do backwards propagation so gradients are computed
@@ -33,8 +33,10 @@ class TestSparsifier(unittest.TestCase):
         # get the tensor gradient before sparsification
         x_grad = x_id.grad
         # check that the gradients are sparsified
-        n_sparse_grad = len(x_grad[x_grad != 0])
-        self.assertEqual(n_sparse, n_sparse_grad)
+        n_non_zero_grad = torch.numel(x_grad[x_grad != 0])
+        n_grad = torch.numel(x_grad)
+        grad_sparsity = 1 - (n_non_zero_grad / n_grad)
+        self.assertEqual(grad_sparsity, actual_sparsity)
         # check that non-sparse gradients are 1, since we only applied an Identity to the input
         self.assertTrue(torch.all(x_grad[x_grad != 0] == 1))
         # check that the non-zero gradients correspond to the non-zero elements of the input array
@@ -63,9 +65,10 @@ class TestSparsifier(unittest.TestCase):
         # sparsify the tensor
         sparse_x = sparsify(x_id)
         # check that the tensor is indeed sparsified
-        n_sparse = len(sparse_x[sparse_x != 0])
-        expected_n_sparse = math.ceil((1 - 0.95) * 100)
-        self.assertLessEqual(n_sparse, expected_n_sparse)
+        n_non_zero = torch.numel(sparse_x[sparse_x != 0])
+        n = torch.numel(x_id)
+        actual_sparsity = 1 - (n_non_zero / n)
+        self.assertGreaterEqual(actual_sparsity, sparsity)
         # compute a sum of the sparsified tensor so we can compute gradients
         y = sparse_x.sum()
         # do backwards propagation so gradients are computed
@@ -73,8 +76,10 @@ class TestSparsifier(unittest.TestCase):
         # get the tensor gradient before sparsification
         x_grad = x_id.grad
         # check that the gradients are sparsified
-        n_sparse_grad = len(x_grad[x_grad != 0])
-        self.assertEqual(n_sparse, n_sparse_grad)
+        n_non_zero_grad = torch.numel(x_grad[x_grad != 0])
+        n_grad = torch.numel(x_grad)
+        grad_sparsity = 1 - (n_non_zero_grad / n_grad)
+        self.assertEqual(grad_sparsity, actual_sparsity)
         # check that non-sparse gradients are 1, since we only applied an Identity to the input
         self.assertTrue(torch.all(x_grad[x_grad != 0] == 1))
         # check that the non-zero gradients correspond to the non-zero elements of the input array
@@ -103,9 +108,10 @@ class TestSparsifier(unittest.TestCase):
         # sparsify the tensor
         sparse_x = sparsify(x_id)
         # check that the tensor is indeed sparsified
-        n_sparse = len(sparse_x[sparse_x != 0])
-        expected_n_sparse = math.ceil((1 - 0.95) * 3 * 512 * 512) * 32
-        self.assertLessEqual(n_sparse, expected_n_sparse)
+        n_non_zero = torch.numel(sparse_x[sparse_x != 0])
+        n = torch.numel(x_id)
+        actual_sparsity = 1 - (n_non_zero / n)
+        self.assertGreaterEqual(actual_sparsity, sparsity)
         # compute a sum of the sparsified tensor so we can compute gradients
         y = sparse_x.sum()
         # do backwards propagation so gradients are computed
@@ -113,8 +119,10 @@ class TestSparsifier(unittest.TestCase):
         # get the tensor gradient before sparsification
         x_grad = x_id.grad
         # check that the gradients are sparsified
-        n_sparse_grad = len(x_grad[x_grad != 0])
-        self.assertEqual(n_sparse, n_sparse_grad)
+        n_non_zero_grad = torch.numel(x_grad[x_grad != 0])
+        n_grad = torch.numel(x_grad)
+        grad_sparsity = 1 - (n_non_zero_grad / n_grad)
+        self.assertEqual(grad_sparsity, actual_sparsity)
         # check that non-sparse gradients are 1, since we only applied an Identity to the input
         self.assertTrue(torch.all(x_grad[x_grad != 0] == 1))
         # check that the non-zero gradients correspond to the non-zero elements of the input array
@@ -141,9 +149,10 @@ class TestSparsifier(unittest.TestCase):
         # sparsify the tensor
         sparse_x = sparsify(x_id)
         # check that the tensor is indeed sparsified
-        n_sparse = len(sparse_x[sparse_x != 0])
-        expected_n_sparse = math.ceil((1 - 0.95) * 3 * 512 * 512) * 32
-        self.assertLessEqual(n_sparse, expected_n_sparse)
+        n_non_zero = torch.numel(sparse_x[sparse_x != 0])
+        n = torch.numel(x_id)
+        actual_sparsity = 1 - (n_non_zero / n)
+        self.assertGreaterEqual(actual_sparsity, sparsity)
         # compute a sum of the sparsified tensor so we can compute gradients
         y = sparse_x.sum()
         # do backwards propagation so gradients are computed
@@ -151,8 +160,10 @@ class TestSparsifier(unittest.TestCase):
         # get the tensor gradient before sparsification
         x_grad = x_id.grad
         # check that the gradients are sparsified
-        n_sparse_grad = len(x_grad[x_grad != 0])
-        self.assertEqual(n_sparse, n_sparse_grad)
+        n_non_zero_grad = torch.numel((x_grad[x_grad != 0]))
+        n_grad = torch.numel(x_grad)
+        grad_sparsity = 1 - (n_non_zero_grad / n_grad)
+        self.assertEqual(grad_sparsity, actual_sparsity)
         # check that non-sparse gradients are 1, since we only applied an Identity to the input
         self.assertTrue(torch.all(x_grad[x_grad != 0] == 1))
         # check that the non-zero gradients correspond to the non-zero elements of the input array

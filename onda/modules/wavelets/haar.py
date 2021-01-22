@@ -3,29 +3,37 @@ import torch
 #  constants for Haar Wavelet decomposition
 
 # Haar Convolution Kernels
-HORIZONTAL_LOW_PASS_KERNEL = torch.FloatTensor([[1, 1]])
-HORIZONTAL_DETAIL_KERNEL = torch.FloatTensor([[1, -1]])
+HORIZONTAL_LOW_PASS_KERNEL = torch.FloatTensor([[0.5, 0.5]])
+HORIZONTAL_DETAIL_KERNEL = torch.FloatTensor([[0.5, -0.5]])
 
-HORIZONTAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[0.5, 0]])
-HORIZONTAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 0.5]])
+HORIZONTAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[1, 0]])
+HORIZONTAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 1]])
 
-VERTICAL_LOW_PASS_KERNEL = torch.FloatTensor([[1], [1]])
-VERTICAL_DETAIL_KERNEL = torch.FloatTensor([[1], [-1]])
+VERTICAL_LOW_PASS_KERNEL = torch.FloatTensor([[0.5], [0.5]])
+VERTICAL_DETAIL_KERNEL = torch.FloatTensor([[0.5], [-0.5]])
 
-VERTICAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[0.5], [0]])
-VERTICAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0], [0.5]])
+VERTICAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[1], [0]])
+VERTICAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0], [1]])
 
-UP_DIAGONAL_LOW_PASS_KERNEL = torch.FloatTensor([[0, 1], [1, 0]])
-UP_DIAGONAL_DETAIL_KERNEL = torch.FloatTensor([[0, -1], [1, 0]])
+UP_DIAGONAL_LOW_PASS_KERNEL = torch.FloatTensor([[0, 0.5],
+                                                 [0.5, 0]])
+UP_DIAGONAL_DETAIL_KERNEL = torch.FloatTensor([[0, -0.5],
+                                               [0.5,  0]])
 
-UP_DIAGONAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[0, 0], [0.5, 0]])
-UP_DIAGONAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 0.5], [0, 0]])
+UP_DIAGONAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[0, 0],
+                                                        [1, 0]])
+UP_DIAGONAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 1],
+                                                      [0, 0]])
 
-DOWN_DIAGONAL_LOW_PASS_KERNEL = torch.FloatTensor([[1, 0], [0, 1]])
-DOWN_DIAGONAL_DETAIL_KERNEL = torch.FloatTensor([[1, 0], [0, -1]])
+DOWN_DIAGONAL_LOW_PASS_KERNEL = torch.FloatTensor([[0.5, 0],
+                                                   [0, 0.5]])
+DOWN_DIAGONAL_DETAIL_KERNEL = torch.FloatTensor([[0.5,  0],
+                                                 [0, -0.5]])
 
-DOWN_DIAGONAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[0.5, 0], [0, 0]])
-DOWN_DIAGONAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 0], [0, 0.5]])
+DOWN_DIAGONAL_LOW_PASS_DECONV_KERNEL = torch.FloatTensor([[1, 0],
+                                                          [0, 0]])
+DOWN_DIAGONAL_DETAIL_DECONV_KERNEL = torch.FloatTensor([[0, 0],
+                                                        [0, 1]])
 
 # indices
 LOW_PASS = 0

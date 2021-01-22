@@ -46,7 +46,8 @@ class Sparsifier(torch.nn.Module):
                 input (torch.tensor): a tensor with dimensions (batch_size, channels, height, width)
 
                 sparsity (float): the desired the sparsity; must be between 0 and 1, exclusive.
-                    Higher sparsity means more elements will be set to 0
+                    Higher sparsity means more elements will be set to 0, e.g. sparsity=0.95 means
+                    that at most 0.05 of the elements of the sparsified tensor will be non-zero
 
                 dim (int / tuple(int)): the dimensions along which to sparsify; can be a single
                     dimension or a tuple of dimensions
@@ -144,9 +145,9 @@ class Sparsifier(torch.nn.Module):
             sorted_t, sorted_indices = torch.sort(t, dim=dim_to_sort)
 
         # the number of tensor elements that will not be zero after sparsification
-        n_sparse = math.floor((1 - self._sparsity) * length)
+        n_sparse = length - math.ceil(self._sparsity * length)
 
-        index = sorted_t.shape[-1] - n_sparse - 1
+        index = sorted_t.shape[-1] - n_sparse
         values = sorted_t[..., index]
 
         while len(values.shape) < len(x.shape):

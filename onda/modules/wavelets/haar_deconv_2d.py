@@ -1,6 +1,7 @@
 import torch
 import haar
 import torch.nn.functional as F
+from onda.modules.upsample import DiagonalUpsample
 
 
 class HaarDeconv2D(torch.nn.Module):
@@ -57,7 +58,7 @@ class HaarDeconv2D(torch.nn.Module):
             Args:
                 x tuple(torch.tensor): a tuple of tensors with dimensions
                     [batch_size, channels, width, height]
-                    the tuple contqins the low pass and detail tensors originating from a Haar
+                    the tuple contains the low pass and detail tensors originating from a Haar
                     Wavelet decomposition, in that order
                     both tensors must have the same shape
 
@@ -106,6 +107,7 @@ class HaarDeconv2D(torch.nn.Module):
                                  stride=self._stride,
                                  padding=0,
                                  groups=self._groups)
+
         d1 = F.conv_transpose2d(detail,
                                 weight=self._low_pass_kernel,
                                 stride=self._stride,
@@ -117,6 +119,7 @@ class HaarDeconv2D(torch.nn.Module):
                                  stride=self._stride,
                                  padding=0,
                                  groups=self._groups)
+
         d2 = F.conv_transpose2d(detail,
                                 weight=self._detail_kernel,
                                 stride=self._stride,

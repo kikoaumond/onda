@@ -1,6 +1,6 @@
 import unittest
 import torch
-from onda.modules.diagonal_upsample import DiagonalUpsample
+from upsample.diagonal_upsample import DiagonalUpsample
 from onda.modules.wavelets.haar import UP_DIAGONAL, DOWN_DIAGONAL
 
 
@@ -8,7 +8,7 @@ class TestDiagonalUpsample(unittest.TestCase):
 
     def test_base_case(self):
         """
-        test convolution and deconvolution with a simple tensor
+        test diagonal upsampling with a simple tensor
 
         """
         up_diagonal = torch.FloatTensor([[1,  3],
@@ -19,8 +19,13 @@ class TestDiagonalUpsample(unittest.TestCase):
                                            [6,  8]])
         down_diagonal.unsqueeze_(0).unsqueeze_(0)
 
-        diagonal_upsample = DiagonalUpsample(in_channels=1)
-        upsampled = diagonal_upsample((up_diagonal, down_diagonal))
+        ud_upsample = DiagonalUpsample(orientation=UP_DIAGONAL, in_channels=1)
+        up_diagonal_upsampled = ud_upsample(up_diagonal)
+
+        dd_upsample = DiagonalUpsample(orientation=DOWN_DIAGONAL, in_channels=1)
+        down_diagonal_upsampled = dd_upsample(down_diagonal)
+
+        upsampled = up_diagonal_upsampled + down_diagonal_upsampled
 
         expected_upsampled = torch.FloatTensor([[2, 1, 4, 3],
                                                 [1, 2, 3, 4],
@@ -37,8 +42,13 @@ class TestDiagonalUpsample(unittest.TestCase):
         n_channels = 3
         up_diagonal = torch.rand(batch_size, n_channels, 16, 16)
         down_diagonal = torch.rand(batch_size, n_channels, 16, 16)
-        diagonal_upsample = DiagonalUpsample(in_channels=n_channels)
-        upsampled = diagonal_upsample((up_diagonal, down_diagonal))
+
+        ud_upsample = DiagonalUpsample(orientation=UP_DIAGONAL, in_channels=n_channels)
+        up_diagonal_upsampled = ud_upsample(up_diagonal)
+
+        dd_upsample = DiagonalUpsample(orientation=DOWN_DIAGONAL, in_channels=n_channels)
+        down_diagonal_upsampled = dd_upsample(down_diagonal)
+        upsampled = up_diagonal_upsampled + down_diagonal_upsampled
 
         self.assertEquals(upsampled.shape, (batch_size, n_channels, 32, 32))
 
@@ -64,9 +74,9 @@ class TestDiagonalUpsample(unittest.TestCase):
         up_diagonal = torch.FloatTensor([[1, 3],
                                          [5, 7]])
         up_diagonal.unsqueeze_(0).unsqueeze_(0)
-
-        diagonal_upsample = DiagonalUpsample(in_channels=1)
-        upsampled = diagonal_upsample((up_diagonal,), orientation=UP_DIAGONAL)
+        # upsample in UP_DIAGONAL orientation
+        diagonal_upsample = DiagonalUpsample(orientation=UP_DIAGONAL, in_channels=1)
+        upsampled = diagonal_upsample(up_diagonal)
 
         expected_upsampled = torch.FloatTensor([[0, 1, 0, 3],
                                                 [1, 0, 3, 0],
@@ -76,11 +86,11 @@ class TestDiagonalUpsample(unittest.TestCase):
         self.assertTrue(torch.all(expected_upsampled == upsampled))
 
         down_diagonal = torch.FloatTensor([[1, 3],
-                                         [5, 7]])
+                                           [5, 7]])
         down_diagonal.unsqueeze_(0).unsqueeze_(0)
-
-        diagonal_upsample = DiagonalUpsample(in_channels=1)
-        upsampled = diagonal_upsample((down_diagonal,), orientation=DOWN_DIAGONAL)
+        # Upsample in DOWN_DIAGONAL orientation
+        diagonal_upsample = DiagonalUpsample(orientation=DOWN_DIAGONAL, in_channels=1)
+        upsampled = diagonal_upsample(down_diagonal)
 
         expected_upsampled = torch.FloatTensor([[1, 0, 3, 0],
                                                 [0, 1, 0, 3],
