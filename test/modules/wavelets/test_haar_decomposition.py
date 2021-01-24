@@ -149,21 +149,14 @@ class TestHaarDecomposition(unittest.TestCase):
         image = self.letterbox_image(image, (512, 512))
         display(image, None)
         image = to_tensor(image).unsqueeze_(0)
-        #image.transpose_(0, 2)
         image.unsqueeze_(0)
         sparsity = 0.95
         hd = HaarDecomposition2D(input_shape=image.shape, sparsity=sparsity, by_channel=True)
         decomposition = hd(image)
         reconstructed_image = HaarDecomposition2D.reconstruct(decomposition, in_channels=1)
-        reconstructed_image.squeeze_(0).transpose_(0, 2)
+        reconstructed_image.squeeze_(0).transpose_(0, 2).transpose_(0, 1)
         display(reconstructed_image, None)
 
-        # decompose by aggregating channels
-        hd = HaarDecomposition2D(input_shape=image.shape, sparsity=sparsity, by_channel=False)
-        decomposition = hd(image)
-        reconstructed_image = HaarDecomposition2D.reconstruct(decomposition, in_channels=1)
-        reconstructed_image.squeeze_(0).transpose_(0, 2)
-        display(reconstructed_image, None)
 
 
 
