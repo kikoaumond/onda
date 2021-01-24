@@ -96,6 +96,33 @@ class TestDiagonalUpsample(unittest.TestCase):
                                                 [0, 1, 0, 3],
                                                 [5, 0, 7, 0],
                                                 [0, 5, 0, 7]]).unsqueeze_(dim=0).unsqueeze_(dim=0)
+        self.assertTrue(torch.all(expected_upsampled == upsampled))
+
+    def test_recursive(self):
+        """
+        Test DiagonalUpsample recursively with alternating orientations
+        Returns:
+
+        """
+        up_diagonal = torch.FloatTensor([[1]])
+        up_diagonal.unsqueeze_(0).unsqueeze_(0)
+        # upsample in UP_DIAGONAL orientation
+        ud_upsample = DiagonalUpsample(orientation=UP_DIAGONAL, in_channels=1)
+        upsampled = ud_upsample(up_diagonal)
+
+        expected_upsampled = torch.FloatTensor([[0, 1],
+                                                [1, 0]]).unsqueeze_(dim=0).unsqueeze_(dim=0)
+
+        self.assertTrue(torch.all(expected_upsampled == upsampled))
+
+        # upsample the upsampled tensor once again, but this time in down diagonal orientation
+        dd_upsample = DiagonalUpsample(orientation=DOWN_DIAGONAL, in_channels=1)
+        upsampled = dd_upsample(upsampled)
+
+        expected_upsampled = torch.FloatTensor([[0, 0, 1, 0],
+                                                [0, 0, 0, 1],
+                                                [1, 0, 0, 0],
+                                                [0, 1, 0, 0]]).unsqueeze_(dim=0).unsqueeze_(dim=0)
 
         self.assertTrue(torch.all(expected_upsampled == upsampled))
 

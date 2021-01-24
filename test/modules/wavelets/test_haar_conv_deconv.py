@@ -161,6 +161,9 @@ class TestHaar(unittest.TestCase):
                                                      [-2.5, -3.5]]]])
                 self.assertTrue(torch.all(detail == expected_detail))
 
+                reconstructed = haar_deconv((low_pass, detail))
+                self.assertTrue(torch.all(reconstructed[reconstructed != 0] == t[reconstructed != 0]))
+
                 level2_low_pass, level2_detail = haar(low_pass)
                 expected_level2_low_pass = torch.FloatTensor([[[[10.25]]]])
                 self.assertTrue(torch.all(level2_low_pass == expected_level2_low_pass))
@@ -173,8 +176,7 @@ class TestHaar(unittest.TestCase):
                                                                 [5.5, 0]]]])
                 self.assertTrue(torch.all(low_pass_deconv == expected_low_pass_deconv))
 
-                reconstructed = haar_deconv((low_pass_deconv, detail))
-                self.assertTrue(torch.all(reconstructed == t))
+
 
             elif orientation == DOWN_DIAGONAL:
                 expected_low_pass = torch.FloatTensor([[1.5,  5.5],

@@ -1,7 +1,6 @@
 import torch
 import haar
 import torch.nn.functional as F
-from onda.modules.upsample import DiagonalUpsample
 
 
 class HaarDeconv2D(torch.nn.Module):
@@ -12,7 +11,7 @@ class HaarDeconv2D(torch.nn.Module):
 
     def __init__(self, orientation, in_channels=3):
         """
-        HaarDeconv2D constructor: Takes a tensor of dimension <Samples, Channels, Width, Height>
+        HaarDeconv2D constructor: Takes a tensor of dimension <Samples, Channels, Height, Width>
         width and height dimensions must be even
 
         Args:
@@ -20,12 +19,11 @@ class HaarDeconv2D(torch.nn.Module):
             orientation (int): the direction of the Haar kernel: one of
                 haar.HORIZONTAL, haar.VERTICAL, haar.UP_DIAGONAL or haar.DOWN_DIAGONAL
 
-            in_channels (int): the number of channels in the tensor, i.e. the size of dimenson
+            in_channels (int): the number of channels in the tensor, i.e. the size of dimension
                 index 1
         """
         super(HaarDeconv2D, self).__init__()
 
-        kernels = haar.DECONV_KERNELS[orientation]
         self._orientation = orientation
 
         if self._orientation == haar.VERTICAL:
@@ -45,9 +43,11 @@ class HaarDeconv2D(torch.nn.Module):
         self._groups = self._in_channels
         self._kernel_dim = self._in_channels // self._groups
 
-        self._low_pass_kernel = kernels[haar.LOW_PASS].unsqueeze(0).unsqueeze(0)\
+        deconv_kernels = haar.DECONV_KERNELS[self._orientation]
+
+        self._low_pass_kernel = deconv_kernels[haar.LOW_PASS].unsqueeze(0).unsqueeze(0)\
             .repeat(self._out_channels, self._kernel_dim, 1, 1)
-        self._detail_kernel = kernels[haar.DETAIL].unsqueeze(0).unsqueeze(0)\
+        self._detail_kernel = deconv_kernels[haar.DETAIL].unsqueeze(0).unsqueeze(0)\
             .repeat(self._out_channels, self._kernel_dim, 1, 1)
 
     def forward(self, x):
@@ -57,7 +57,7 @@ class HaarDeconv2D(torch.nn.Module):
 
             Args:
                 x tuple(torch.tensor): a tuple of tensors with dimensions
-                    [batch_size, channels, width, height]
+                    [batch_size, channels, height, width]
                     the tuple contains the low pass and detail tensors originating from a Haar
                     Wavelet decomposition, in that order
                     both tensors must have the same shape
@@ -95,12 +95,20 @@ class HaarDeconv2D(torch.nn.Module):
                 'while dimension {} has size {}'\
                 .format(2, low_pass.shape[2], 3, low_pass.shape[3])
 
+            deconv = self._deconv_diagonal(low_pass, detail)
+
+            return deconv
+
         elif self._orientation == haar.DOWN_DIAGONAL:
             # check both dimensions are equal
             assert low_pass.shape[2] == low_pass.shape[3], \
                 'Expected height and width should be equal but dimension {} has size {} ' \
                 'while dimension {} has size {}' \
                 .format(2, low_pass.shape[2], 3, low_pass.shape[3])
+
+            deconv = self._deconv_diagonal(low_pass, detail)
+
+            return deconv
 
         lp1 = F.conv_transpose2d(low_pass,
                                  weight=self._low_pass_kernel,
@@ -125,6 +133,37 @@ class HaarDeconv2D(torch.nn.Module):
                                 stride=self._stride,
                                 padding=0,
                                 groups=self._groups)
+        deconv = lp1 + d1
+        deconv += lp2 - d2
+
+        return deconv
+
+    def _deconv_diagonal(self, low_pass, detail):
+
+        lp1 = F.conv_transpose2d(low_pass,
+                                 weight=self._low_pass_kernel,
+                                 stride=self._stride,
+                                 padding=0,
+                                 groups=self._groups)
+
+        d1 = F.conv_transpose2d(detail,
+                                weight=self._low_pass_kernel,
+                                stride=self._stride,
+                                padding=0,
+                                groups=self._groups)
+
+        lp2 = F.conv_transpose2d(low_pass,
+                                 weight=self._detail_kernel,
+                                 stride=self._stride,
+                                 padding=0,
+                                 groups=self._groups)
+
+        d2 = F.conv_transpose2d(detail,
+                                weight=self._detail_kernel,
+                                stride=self._stride,
+                                padding=0,
+                                groups=self._groups)
+
         deconv = lp1 + d1
         deconv += lp2 - d2
 
